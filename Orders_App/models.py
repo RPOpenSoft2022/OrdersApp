@@ -7,13 +7,16 @@ LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
 STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
 
 
-class Orders(models.Model):
+class Order(models.Model):
     token = models.CharField(default='', blank=False, max_length=200)
+    # "item_list" field is automatically added to each order and can be used to retrieve all items whose foreign-key
+    # is this particular Order (Example view and url added as comment)
     order_time = models.DateTimeField(auto_now_add=True, blank=True)
     customer = models.CharField(default='', blank=False, max_length=200)
     transaction_token = models.CharField(default='', blank=False, max_length=200)
 
 
-class Items(models.Model):
-    itemId = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='item_list', null=True, blank=True)
+class Item(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='item_list', null=True, blank=True)
+    itemId = models.CharField(default='', blank=False, max_length=200)
     quantity = models.IntegerField(null=True)
