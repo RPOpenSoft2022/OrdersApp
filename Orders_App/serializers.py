@@ -5,7 +5,7 @@ from Orders_App.models import Order, Item
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'token', 'item_list', 'order_time', 'customer', 'transaction_token']
+        fields = ['id', 'items', 'order_time', 'customer', 'transaction_token']
 
     def to_representation(self, instance):
         item_list = []

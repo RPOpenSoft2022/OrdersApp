@@ -43,8 +43,6 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         item_list = Order.objects.get(pk=self.kwargs['pk']) .items.all()
         new_item_list = []
-        if self.request.POST.get("token"):
-            serializer.token = self.request.POST.get("token")
         if self.request.POST.get("customer"):
             serializer.customer = self.request.POST.get("customer")
         if self.request.POST.get("transaction_token"):
