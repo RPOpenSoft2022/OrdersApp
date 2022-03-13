@@ -2,7 +2,6 @@ from django.db import models
 
 
 class Order(models.Model):
-    token = models.CharField(default='', blank=False, max_length=200)
     order_time = models.DateTimeField(auto_now_add=True, blank=True)
     customer = models.CharField(default='', blank=False, max_length=200)
     transaction_token = models.CharField(default='', blank=False, max_length=200)
