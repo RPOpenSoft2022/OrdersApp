@@ -25,10 +25,10 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ['id', 'order', 'text', 'score']
+        extra_kwargs = {'customerId': {'required': False}}
 
     def to_representation(self, instance):
         return {
-            "review_id": instance.id,
             "order_id": instance.order.id,
             "review_score": instance.score,
             "review_text": instance.text,

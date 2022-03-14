@@ -15,6 +15,6 @@ class Item(models.Model):
 
 
 class Review(models.Model):
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, null=True, blank=False)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, null=False, primary_key=True)
     text = models.CharField(max_length=400, blank=True)
     score = models.IntegerField(null=True, blank=False)

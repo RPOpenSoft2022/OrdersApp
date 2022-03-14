@@ -64,18 +64,13 @@ class ReviewList(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
 
     def perform_create(self, serializer):
-        print(self.request.POST)
         order = Order.objects.get(id=self.request.POST.get("order_id"))
         text = self.request.POST.get("review_text")
         score = self.request.POST.get("review_score")
-        print(text)
         serializer.save(order=order, text=text, score=score)
 
 
-@api_view(['POST'])
-def review_detail(request):
-    if request.method == "POST":
-        order = Order.objects.get(id=request.POST.get("order_id"))
-        review = Review.objects.get(order=order)
-        serializer = ReviewSerializer(review)
-        return Response(serializer.data)
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
