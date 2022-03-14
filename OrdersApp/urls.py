@@ -19,11 +19,13 @@ from Orders_App import views
 from rest_framework.urlpatterns import format_suffix_patterns
 
 urlpatterns = [
+    path('', views.api_root),
     path('admin/', admin.site.urls),
-    path('order/', views.OrderList.as_view()),
-    path('order/<int:pk>', views.OrderDetail.as_view()),
-    path('review/', views.ReviewList.as_view()),
-    path('review/<int:pk>', views.ReviewDetail.as_view()),
+    path('order/', views.OrderList.as_view(), name="order-list"),
+    path('order/<int:pk>', views.OrderDetail.as_view(), name="order-detail"),
+    path('order/<int:pk>/cancel', views.OrderCancel.as_view(), name="order-cancel"),
+    path('review/', views.ReviewList.as_view(), name="review-list"),
+    path('review/<int:pk>', views.ReviewDetail.as_view(), name="review-detail"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

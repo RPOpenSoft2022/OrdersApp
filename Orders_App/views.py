@@ -1,11 +1,21 @@
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
+from django.views.decorators.csrf import csrf_exempt
 from Orders_App.serializers import OrderSerializer, ReviewSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework import renderers
 import json
 import datetime
+
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'orders': reverse('order-list', request=request, format=format)
+    })
 
 
 class OrderList(generics.ListCreateAPIView):
@@ -57,6 +67,18 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
             serializer.save(items=item_list)
         except Exception as e:
             ValidationError(e)
+
+
+class OrderCancel(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def update(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        order.active_status = False
+        order.save()
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
 
 
 class ReviewList(generics.ListCreateAPIView):
