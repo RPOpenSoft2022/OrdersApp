@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from Orders_App.models import Order, Item
+from Orders_App.models import Order, Review
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -18,4 +18,18 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer": instance.customer,
             "transaction_token": instance.transaction_token,
             "active_status": instance.active_status
+        }
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'order', 'text', 'score']
+
+    def to_representation(self, instance):
+        return {
+            "review_id": instance.id,
+            "order_id": instance.order.id,
+            "review_score": instance.score,
+            "review_text": instance.text,
         }

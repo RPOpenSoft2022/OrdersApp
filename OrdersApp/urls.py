@@ -22,6 +22,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('order/', views.OrderList.as_view()),
     path('order/<int:pk>', views.OrderDetail.as_view()),
+    path('review/', views.ReviewList.as_view()),
+    path('show_review/', views.review_detail),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
