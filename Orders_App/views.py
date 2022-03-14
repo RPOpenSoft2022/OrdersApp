@@ -1,3 +1,5 @@
+import random
+
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -40,7 +42,7 @@ class OrderList(generics.ListCreateAPIView):
         items = json.loads(self.request.POST.get("item_list"))
         for item in items:
             item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
-        serializer.save(items=item_list, order_time=datetime.time)
+        serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
 
 
 class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -103,4 +105,3 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         order.save()
         serializer = OrderSerializer(order)
         return Response(serializer.data)
-

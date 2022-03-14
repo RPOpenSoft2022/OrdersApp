@@ -1,5 +1,13 @@
 from django.db import models
 
+Order_status = (
+    ('Order Pending', 'Pending'),
+    ('Order Accepted', 'Preparing Item'),
+    ('Out for Delivery', 'Out for Delivery'),
+    ('Delivered', 'Delivered'),
+    ('Cancel Order', 'Cancelled'),
+)
+
 
 class Order(models.Model):
     order_time = models.DateTimeField(auto_now_add=True, blank=True)
@@ -8,7 +16,8 @@ class Order(models.Model):
     active_status = models.BooleanField(default=True)
     review_text = models.CharField(max_length=400, blank=True, null=True)
     review_score = models.IntegerField(null=True, blank=True)
-    # delivery_otp=models.IntegerField(null=True, blank=True)
+    delivery_otp = models.IntegerField(null=True, blank=True)
+    delivery_status = models.CharField(null=False, blank=False, choices=Order_status, default=Order_status[0],max_length=200)
 
 
 class Item(models.Model):
