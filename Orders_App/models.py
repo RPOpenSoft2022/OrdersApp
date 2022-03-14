@@ -6,15 +6,12 @@ class Order(models.Model):
     customer = models.CharField(default='', blank=False, max_length=200)
     transaction_token = models.CharField(default='', blank=False, max_length=200)
     active_status = models.BooleanField(default=True)
+    review_text = models.CharField(max_length=400, blank=True, null=True)
+    review_score = models.IntegerField(null=True, blank=True)
+    # delivery_otp=models.IntegerField(null=True, blank=True)
 
 
 class Item(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True, blank=True)
     itemId = models.CharField(default='', blank=False, max_length=200)
     quantity = models.IntegerField(null=True)
-
-
-class Review(models.Model):
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, null=False, primary_key=True)
-    text = models.CharField(max_length=400, blank=True)
-    score = models.IntegerField(null=True, blank=False)

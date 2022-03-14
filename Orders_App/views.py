@@ -1,7 +1,7 @@
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
-from Orders_App.serializers import OrderSerializer, ReviewSerializer
+from Orders_App.serializers import OrderSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -48,7 +48,7 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = OrderSerializer
 
     def perform_update(self, serializer):
-        item_list = Order.objects.get(pk=self.kwargs['pk']) .items.all()
+        item_list = Order.objects.get(pk=self.kwargs['pk']).items.all()
         new_item_list = []
         if self.request.POST.get("customer"):
             serializer.customer = self.request.POST.get("customer")
@@ -81,18 +81,26 @@ class OrderCancel(generics.UpdateAPIView):
         return Response(serializer.data)
 
 
-class ReviewList(generics.ListCreateAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
+class ReviewDetails(generics.RetrieveUpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
-    def perform_create(self, serializer):
-        order = Order.objects.get(id=self.request.POST.get("order_id"))
-        text = self.request.POST.get("review_text")
-        score = self.request.POST.get("review_score")
-        serializer.save(order=order, text=text, score=score)
+    def retrieve(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        review_text = request.POST.get('review_text')
+        review_score = request.POST.get('review_score')
+        ID = order.id
+        return Response({
+            'order_id': ID,
+            'review_text': review_text,
+            'review_score': review_score
+        })
 
-
-class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
+    def update(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        order.review_text = request.POST.get('review_text')
+        order.review_score = request.POST.get('review_score')
+        order.save()
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
 
