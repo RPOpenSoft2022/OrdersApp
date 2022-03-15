@@ -4,6 +4,8 @@ from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
 from Orders_App.serializers import OrderSerializer
+from Orders_App.pub import publish_data_on_redis
+from Orders_App.subscribe import Command
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -104,11 +106,11 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 
-class VerifyOTP(generics.RetrieveAPIView):
+class VerifyOTP(generics.RetrieveUpdateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    def retrieve(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
@@ -116,3 +118,14 @@ class VerifyOTP(generics.RetrieveAPIView):
             return Response({'Message': success_message})
         else:
             return Response({'Message': failure_message})
+
+    def retrieve(self, request, *args, **kwargs):
+        json_data = {'message': 'Hello to all connected clients', 'date': '2019-02-02', 'title': 'welcome'}
+        publish_data_on_redis(json_data, 'notification.new')
+        return Response({'Message': "YES"})
+
+@api_view(['GET'])
+def check_sub(request):
+    temp = Command()
+    print(temp.handle())
+    return Response({'Message': temp.handle()})
