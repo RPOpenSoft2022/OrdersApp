@@ -1,7 +1,9 @@
+import random
+
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
-from Orders_App.serializers import OrderSerializer, ReviewSerializer
+from Orders_App.serializers import OrderSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -40,7 +42,7 @@ class OrderList(generics.ListCreateAPIView):
         items = json.loads(self.request.POST.get("item_list"))
         for item in items:
             item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
-        serializer.save(items=item_list, order_time=datetime.time)
+        serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
 
 
 class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -48,7 +50,7 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = OrderSerializer
 
     def perform_update(self, serializer):
-        item_list = Order.objects.get(pk=self.kwargs['pk']) .items.all()
+        item_list = Order.objects.get(pk=self.kwargs['pk']).items.all()
         new_item_list = []
         if self.request.POST.get("customer"):
             serializer.customer = self.request.POST.get("customer")
@@ -81,18 +83,36 @@ class OrderCancel(generics.UpdateAPIView):
         return Response(serializer.data)
 
 
-class ReviewList(generics.ListCreateAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
+class ReviewDetails(generics.RetrieveUpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
-    def perform_create(self, serializer):
-        order = Order.objects.get(id=self.request.POST.get("order_id"))
-        text = self.request.POST.get("review_text")
-        score = self.request.POST.get("review_score")
-        serializer.save(order=order, text=text, score=score)
+    def retrieve(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        return Response({
+            'order_id': order.id,
+            'review_text': order.review_text,
+            'review_score': order.review_score
+        })
+
+    def update(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        order.review_text = request.POST.get('review_text')
+        order.review_score = request.POST.get('review_score')
+        order.save()
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
 
 
-class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
+class VerifyOTP(generics.RetrieveAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        success_message = 'OTP VERIFICATION SUCCESFULL'
+        failure_message = 'Entered OTP is incorrect'
+        if request.POST.get('delivery_otp') == str(order.delivery_otp):
+            return Response({'Message': success_message})
+        else:
+            return Response({'Message': failure_message})
