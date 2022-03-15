@@ -89,13 +89,10 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
-        review_text = request.POST.get('review_text')
-        review_score = request.POST.get('review_score')
-        ID = order.id
         return Response({
-            'order_id': ID,
-            'review_text': review_text,
-            'review_score': review_score
+            'order_id': order.id,
+            'review_text': order.review_text,
+            'review_score': order.review_score
         })
 
     def update(self, request, *args, **kwargs):
