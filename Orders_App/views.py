@@ -102,3 +102,17 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         order.save()
         serializer = OrderSerializer(order)
         return Response(serializer.data)
+
+
+class VerifyOTP(generics.RetrieveAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        success_message = 'OTP VERIFICATION SUCCESFULL'
+        failure_message = 'Entered OTP is incorrect'
+        if request.POST.get('delivery_otp') == str(order.delivery_otp):
+            return Response({'Message': success_message})
+        else:
+            return Response({'Message': failure_message})
