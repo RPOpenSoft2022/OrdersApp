@@ -135,7 +135,10 @@ class UpdateOrderStatus(generics.UpdateAPIView):
         4 - Canceled
         """
         target_status = int(request.POST.get("target_status"))
-        order.delivery_status = Order_status[target_status]
-        order.save()
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
+        if target_status >= 0 and target_status < 5:
+            order.delivery_status = Order_status[target_status]
+            order.save()
+            serializer = OrderSerializer(order)
+            return Response(serializer.data)
+        else:
+            raise ValidationError("Invalid status code")
