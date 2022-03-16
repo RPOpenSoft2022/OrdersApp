@@ -1,5 +1,6 @@
 import random
 
+from django.contrib.sites import requests
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -43,7 +44,16 @@ class OrderList(generics.ListCreateAPIView):
         items = json.loads(self.request.POST.get("item_list"))
         for item in items:
             item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
-        serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
+        # call Order Validation API
+        body = {'store_id': self.request.POST.get("store_id"),
+                'item_list': self.request.POST.get("item_list"),
+                'customer': self.request.POST.get("customer"),
+                'transaction_token': self.request.POST.get("transaction_token")}
+        response = requests.post(url='localhost:8000/verify_order', body=body)
+        if response.json['msg'] == 'true':
+            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
+        else:
+            raise ValidationError("Order Could not be placed ")
 
 
 class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -135,7 +145,7 @@ class UpdateOrderStatus(generics.UpdateAPIView):
         4 - Canceled
         """
         target_status = int(request.POST.get("target_status"))
-        if target_status >= 0 and target_status < 5:
+        if 0 <= target_status < 5:
             order.delivery_status = Order_status[target_status]
             order.save()
             serializer = OrderSerializer(order)
