@@ -26,7 +26,7 @@ urlpatterns = [
     path('order/<int:pk>/cancel', views.OrderCancel.as_view(), name="order-cancel"),
     path('review/<int:pk>', views.ReviewDetails.as_view(), name="review-detail"),
     path('order/verifyotp/<int:pk>', views.VerifyOTP.as_view(), name="OTP-verification"),
-    path('check_sub', views.check_sub, name='check-sub')
+    path('order/update_status/<int:pk>', views.UpdateOrderStatus.as_view(), name='update-order-status')
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

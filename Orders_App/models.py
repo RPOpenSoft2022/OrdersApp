@@ -1,11 +1,11 @@
 from django.db import models
 
 Order_status = (
-    ('Order Pending', 'Pending'),
-    ('Order Accepted', 'Preparing Item'),
-    ('Out for Delivery', 'Out for Delivery'),
-    ('Delivered', 'Delivered'),
-    ('Cancel Order', 'Cancelled'),
+    ('PENDING', 'Order Pending'),
+    ('ACCEPTED', 'Preparing Item'),
+    ('OUT_FOR_DELIVERY', 'Out for Delivery'),
+    ('DELIVERED', 'Delivered'),
+    ('CANCELLED', 'Cancelled'),
 )
 
 

@@ -4,8 +4,6 @@ from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
 from Orders_App.serializers import OrderSerializer
-from Orders_App.pub import publish_data_on_redis
-from Orders_App.subscribe import Command
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -107,7 +105,7 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 
-class VerifyOTP(generics.RetrieveUpdateAPIView):
+class VerifyOTP(generics.UpdateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
@@ -119,19 +117,25 @@ class VerifyOTP(generics.RetrieveUpdateAPIView):
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
 
         else:
-            response = HttpResponse({'otpverification_status': False, 'Message': failure_message})
-            response.status_code = 404
             return Response({'Message': failure_message, 'otpverification_status': False},
                             status=status.HTTP_404_NOT_FOUND)
 
-    def retrieve(self, request, *args, **kwargs):
-        json_data = {'message': 'Hello to all connected clients', 'date': '2019-02-02', 'title': 'welcome'}
-        publish_data_on_redis(json_data, 'notification.new')
-        return Response({'Message': "YES"})
 
+class UpdateOrderStatus(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
-@api_view(['GET'])
-def check_sub(request):
-    temp = Command()
-    print(temp.handle())
-    return Response({'Message': temp.handle()})
+    def update(self, request, *args, **kwargs):
+        order = Order.objects.get(id=kwargs['pk'])
+        """
+        0 - Pending
+        1 - Accepted
+        2 - Out-for-delivery
+        3 - Delivered
+        4 - Canceled
+        """
+        target_status = int(request.POST.get("target_status"))
+        order.delivery_status = Order_status[target_status]
+        order.save()
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
