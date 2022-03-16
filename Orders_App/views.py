@@ -49,7 +49,7 @@ class OrderList(generics.ListCreateAPIView):
                 'item_list': self.request.POST.get("item_list"),
                 'customer': self.request.POST.get("customer"),
                 'transaction_token': self.request.POST.get("transaction_token")}
-        response = requests.post(url='localhost:8000/verify_order', body=body)
+        response = requests.post(url='localhost:8000/verify_order', json=body)
         if response.json['msg'] == 'true':
             serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
         else:
@@ -88,7 +88,7 @@ class OrderCancel(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
-        order.active_status = False
+        order.delivery_status = Order_status[4]
         order.save()
         serializer = OrderSerializer(order)
         return Response(serializer.data)
@@ -124,8 +124,9 @@ class VerifyOTP(generics.UpdateAPIView):
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
         if request.POST.get('delivery_otp') == str(order.delivery_otp):
+            order.delivery_status= Order_status[3]
+            order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
-
         else:
             return Response({'Message': failure_message, 'otpverification_status': False},
                             status=status.HTTP_404_NOT_FOUND)

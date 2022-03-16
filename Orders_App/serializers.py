@@ -18,7 +18,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "order_time": instance.order_time,
             "customer": instance.customer,
             "transaction_token": instance.transaction_token,
-            "active_status": instance.active_status,
             "review_text": instance.review_text,
             "review_score": instance.review_score,
             "delivery_status": instance.delivery_status,
