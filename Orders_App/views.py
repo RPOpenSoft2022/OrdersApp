@@ -10,6 +10,7 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from django.http import HttpResponse
 from rest_framework import renderers
 import json
 import datetime
@@ -115,14 +116,19 @@ class VerifyOTP(generics.RetrieveUpdateAPIView):
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
         if request.POST.get('delivery_otp') == str(order.delivery_otp):
-            return Response({'Message': success_message})
+            return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
+
         else:
-            return Response({'Message': failure_message})
+            response = HttpResponse({'otpverification_status': False, 'Message': failure_message})
+            response.status_code = 404
+            return Response({'Message': failure_message, 'otpverification_status': False},
+                            status=status.HTTP_404_NOT_FOUND)
 
     def retrieve(self, request, *args, **kwargs):
         json_data = {'message': 'Hello to all connected clients', 'date': '2019-02-02', 'title': 'welcome'}
         publish_data_on_redis(json_data, 'notification.new')
         return Response({'Message': "YES"})
+
 
 @api_view(['GET'])
 def check_sub(request):

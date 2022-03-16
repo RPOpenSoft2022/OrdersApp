@@ -14,6 +14,7 @@ class Order(models.Model):
     customer = models.CharField(default='', blank=False, max_length=200)
     transaction_token = models.CharField(default='', blank=False, max_length=200)
     active_status = models.BooleanField(default=True)
+    store_id = models.BigIntegerField(blank=False, null=False)
     review_text = models.CharField(max_length=400, blank=True, null=True)
     review_score = models.IntegerField(null=True, blank=True)
     delivery_otp = models.IntegerField(null=True, blank=True)
