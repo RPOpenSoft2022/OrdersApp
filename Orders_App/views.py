@@ -13,7 +13,10 @@ from django.http import HttpResponse
 from rest_framework import renderers
 import json
 import datetime
+from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
 
+
+# To laod environment variables
 
 @api_view(['GET'])
 def api_root(request, format=None):
@@ -49,7 +52,7 @@ class OrderList(generics.ListCreateAPIView):
                 'item_list': self.request.POST.get("item_list"),
                 'customer': self.request.POST.get("customer"),
                 'transaction_token': self.request.POST.get("transaction_token")}
-        response = requests.post(url='localhost:8000/verify_order', json=body)
+        response = requests.post(url=STORES_MICROSERVICE_URL+'/verify_order', json=body)
         if response.json['msg'] == 'true':
             serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
         else:
