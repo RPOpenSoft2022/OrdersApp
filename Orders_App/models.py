@@ -1,7 +1,7 @@
 from django.db import models
 from django_json_api.models import JSONAPIModel
 from django_json_api.fields import Attribute
-from Orders_App.settings import STORES_MICROSERVICE_URL
+from OrdersApp.settings import STORES_MICROSERVICE_URL
 
 Order_status = (
     ('PENDING', 'Order Pending'),
