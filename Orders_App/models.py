@@ -1,7 +1,4 @@
 from django.db import models
-from django_json_api.models import JSONAPIModel
-from django_json_api.fields import Attribute
-from Orders_App.settings import STORES_MICROSERVICE_URL
 
 Order_status = (
     ('PENDING', 'Order Pending'),
@@ -21,18 +18,10 @@ class Order(models.Model):
     review_score = models.IntegerField(null=True, blank=True)
     delivery_otp = models.IntegerField(null=True, blank=True)
     delivery_status = models.CharField(null=False, blank=False, choices=Order_status, default=Order_status[0],max_length=200)
+    cost = models.IntegerField(null=True, blank=False)
 
 
 class Item(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True, blank=True)
     itemId = models.CharField(default='', blank=False, max_length=200)
     quantity = models.IntegerField(null=True)
-
-
-class items(JSONAPIModel):
-    class Meta:
-        api_url = STORES_MICROSERVICE_URL
-        resource_type = 'items'
-
-    id = Attribute()
-    price = Attribute()

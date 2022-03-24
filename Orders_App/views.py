@@ -44,12 +44,13 @@ class OrderList(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         item_list = []
-        items1 = json.loads(self.request.POST.get("item_list"))
-        cost = 0
-        for item in items1:
-            cost += items.objects.get(id=item["item"]).price * item["quantity"]
+        items = json.loads(self.request.POST.get("item_list"))
+        for item in items:
             item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
-        print(cost)
+
+        cost = requests.post(url=STORES_MICROSERVICE_URL+'/total_order_cost', json=self.request.POST.get("item_list"))['total_cost']
+
+
         # call Order Validation API
         body = {'store_id': self.request.POST.get("store_id"),
                 'item_list': self.request.POST.get("item_list"),
