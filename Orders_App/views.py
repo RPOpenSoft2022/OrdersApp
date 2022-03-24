@@ -1,6 +1,6 @@
 import random
 
-from django.contrib.sites import requests
+from .interconnect import send_request
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -52,7 +52,10 @@ class OrderList(generics.ListCreateAPIView):
                 'item_list': self.request.POST.get("item_list"),
                 'customer': self.request.POST.get("customer"),
                 'transaction_token': self.request.POST.get("transaction_token")}
-        response = requests.post(url=STORES_MICROSERVICE_URL+'/verify_order', json=body)
+        url = STORES_MICROSERVICE_URL+'/verify_order'
+        success, response = send_request(url, body)
+        if success:
+            raise ValidationError("Could not connect to stores microservices")
         if response.json['msg'] == 'true':
             serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
         else:
