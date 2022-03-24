@@ -1,6 +1,19 @@
+asgiref==3.5.0
+backports.zoneinfo==0.2.1
+certifi==2021.10.8
+charset-normalizer==2.0.12
 Django==4.0.3
 djangorestframework==3.13.1
+<<<<<<< HEAD
 pip==20.3.4
 requests==2.27.1
 setuptools==44.1.1
 wheel==0.37.1
+=======
+idna==3.3
+Pygments==2.11.2
+pytz==2021.3
+requests==2.27.1
+sqlparse==0.4.2
+urllib3==1.26.9
+>>>>>>> 31d703344176913c96b12b426fa273d547ad0f72
