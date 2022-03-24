@@ -12,8 +12,11 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 import os
+import django_heroku
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+from django.conf.global_settings import STATIC_ROOT
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -29,7 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 DELIVERY_MICROSERVICE_URL = os.getenv('DELIVERYS_MICROSERVICE_URL')
-STORES_MICROSERVICE_URL = "http://127.0.0.1:8002"#os.getenv('STORES_MICROSERVICE_URL')
+STORES_MICROSERVICE_URL = os.getenv('STORES_MICROSERVICE_URL')
 USERS_MICROSERVICE_URL = os.getenv('USERS_MICROSERVICE_URL')
 
 
@@ -128,3 +131,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# STATIC_ROOT=os.path.join(BASE_DIR,'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
+
+django_heroku.settings(locals())
