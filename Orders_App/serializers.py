@@ -5,8 +5,8 @@ from Orders_App.models import Order
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ['id', 'items', 'order_time', 'customer', 'transaction_token', 'review_text', 'review_score',
-                  'delivery_otp', 'delivery_status', 'store_id']
+        fields = ['id', 'items', 'cost', 'order_time', 'customer', 'transaction_token', 'review_text', 'review_score',
+                  'delivery_otp', 'delivery_status', 'delivery_address', 'store_id', 'store_name']
 
     def to_representation(self, instance):
         item_list = []
@@ -22,5 +22,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "review_score": instance.review_score,
             "delivery_status": instance.delivery_status,
             "delivery_otp": instance.delivery_otp,
-            "store_id": instance.store_id
+            "delivery_address": instance.delivery_address,
+            "store_id": instance.store_id,
+            "store_name": instance.store_name,
+            "cost": instance.cost,
         }

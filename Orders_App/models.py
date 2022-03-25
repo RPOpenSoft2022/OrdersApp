@@ -14,10 +14,12 @@ class Order(models.Model):
     customer = models.CharField(default='', blank=False, max_length=200)
     transaction_token = models.CharField(default='', blank=False, max_length=200)
     store_id = models.BigIntegerField(blank=False, null=False)
+    store_name = models.CharField(max_length=50, blank=True)
     review_text = models.CharField(max_length=400, blank=True, null=True)
     review_score = models.IntegerField(null=True, blank=True)
     delivery_otp = models.IntegerField(null=True, blank=True)
     delivery_status = models.CharField(null=False, blank=False, choices=Order_status, default=Order_status[0],max_length=200)
+    delivery_address = models.TextField(blank=True)
     cost = models.IntegerField(null=True, blank=False)
 
 

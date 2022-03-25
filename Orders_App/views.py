@@ -9,7 +9,7 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework import renderers
 import json
 import datetime
@@ -45,7 +45,7 @@ class OrderList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         cost = 0
         url = STORES_MICROSERVICE_URL + '/order_summary/'
-        succ, resp = send_request_post(url, self.request.POST.get("item_list"))
+        succ, resp = send_request_post(url, {"item_list":self.request.POST.get("item_list")})
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
@@ -66,9 +66,9 @@ class OrderList(generics.ListCreateAPIView):
         success, response = send_request_post(url, body)
         if not success:
             raise ValidationError("/verify_order : Could not connect to stores microservices")
-        print(response.json())
-        if response.json()['msg'] == 'true':
-            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost = cost)
+        response = response.json()
+        if response['msg'] == 'true':
+            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost=cost, store_name=response["store_name"])
         else:
             raise ValidationError("Order Could not be placed ")
 
@@ -170,3 +170,10 @@ class UpdateOrderStatus(generics.UpdateAPIView):
             return Response(serializer.data)
         else:
             raise ValidationError("Invalid status code")
+
+@api_view(["GET"])
+def pastOrders(request):
+    user_id = request.data['user_id']
+    orders = Order.objects.filter(customer=user_id)
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
