@@ -43,21 +43,19 @@ class OrderList(generics.ListCreateAPIView):
             raise ValidationError('Token not provided')
 
     def perform_create(self, serializer):
-        item_list = []
-        items = json.loads(self.request.POST.get("item_list"))
-        for item in items:
-            item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
-
-        # cost = requests.post(url=STORES_MICROSERVICE_URL+'/total_order_cost', json=self.request.POST.get("item_list"))['total_cost']
         cost = 0
-        url = STORES_MICROSERVICE_URL + '/total_order_cost/'
-        # print(self.request.POST.get("item_list"))
+        url = STORES_MICROSERVICE_URL + '/order_summary/'
         succ, resp = send_request_post(url, self.request.POST.get("item_list"))
-        print(succ)
         if not succ:
-            raise ValidationError("/total_order_cost : Could not connect to stores microservices")
+            raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
-            cost = resp.json()['total_cost']        
+            resp = resp.json()
+            cost = resp['total_cost']        
+
+            item_list = []
+            items = resp['item_list']
+            for item in items:
+                item_list.append(Item.objects.create(itemId=item["item"],name=item["name"], quantity=item["quantity"], item_price=item["item_price"]))
 
         # call Order Validation API
         body = {'store_id': self.request.POST.get("store_id"),

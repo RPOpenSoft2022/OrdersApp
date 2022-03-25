@@ -8,7 +8,7 @@ def send_request_post(url, data):
     resp = None
     while i<4:
         try:
-            resp = requests.post(url=url, json=data, timeout=0.1)
+            resp = requests.post(url=url, json=data, timeout=1)
         except:
             i = i+1
         else:

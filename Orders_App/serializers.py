@@ -11,7 +11,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         item_list = []
         for item in instance.items.all():
-            item_list.append({"item_id": item.itemId, "quantity": item.quantity})
+            item_list.append({"item_id": item.itemId, "name": item.name, "quantity": item.quantity, "item_price": item.item_price})
         return {
             "order_id": instance.id,
             "item_list": item_list,

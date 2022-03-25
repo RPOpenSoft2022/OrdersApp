@@ -24,4 +24,6 @@ class Order(models.Model):
 class Item(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', null=True, blank=True)
     itemId = models.CharField(default='', blank=False, max_length=200)
+    name = models.CharField(max_length=50, null=True)
     quantity = models.IntegerField(null=True)
+    item_price = models.IntegerField(null=True, blank=True)
