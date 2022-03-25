@@ -1,6 +1,6 @@
 import random
 
-from .interconnect import send_request
+from .interconnect import send_request_post
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -48,20 +48,29 @@ class OrderList(generics.ListCreateAPIView):
         for item in items:
             item_list.append(Item.objects.create(itemId=item["item"], quantity=item["quantity"]))
 
-        cost = requests.post(url=STORES_MICROSERVICE_URL+'/total_order_cost', json=self.request.POST.get("item_list"))['total_cost']
-
+        # cost = requests.post(url=STORES_MICROSERVICE_URL+'/total_order_cost', json=self.request.POST.get("item_list"))['total_cost']
+        cost = 0
+        url = STORES_MICROSERVICE_URL + '/total_order_cost/'
+        # print(self.request.POST.get("item_list"))
+        succ, resp = send_request_post(url, self.request.POST.get("item_list"))
+        print(succ)
+        if not succ:
+            raise ValidationError("/total_order_cost : Could not connect to stores microservices")
+        else:
+            cost = resp.json()['total_cost']        
 
         # call Order Validation API
         body = {'store_id': self.request.POST.get("store_id"),
                 'item_list': self.request.POST.get("item_list"),
                 'customer': self.request.POST.get("customer"),
                 'transaction_token': self.request.POST.get("transaction_token")}
-        url = STORES_MICROSERVICE_URL+'/verify_order'
-        success, response = send_request(url, body)
-        if success:
-            raise ValidationError("Could not connect to stores microservices")
-        if response.json['msg'] == 'true':
-            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999))
+        url = STORES_MICROSERVICE_URL+'/verify_order/'
+        success, response = send_request_post(url, body)
+        if not success:
+            raise ValidationError("/verify_order : Could not connect to stores microservices")
+        print(response.json())
+        if response.json()['msg'] == 'true':
+            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost = cost)
         else:
             raise ValidationError("Order Could not be placed ")
 
