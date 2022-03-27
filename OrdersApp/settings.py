@@ -29,11 +29,14 @@ SECRET_KEY = 'django-insecure-1fjxzs^jt5q@khm3^kmr79p^=&tc2@9p+k=d+o978g##)8duzc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+CORS_ORIGIN_ALLOW_ALL = True
 
-DELIVERY_MICROSERVICE_URL = os.getenv('DELIVERYS_MICROSERVICE_URL')
+# URLS for the microservices
+ORDERS_MICROSERVICE_URL = os.getenv('ORDERS_MICROSERVICE_URL')
 STORES_MICROSERVICE_URL = os.getenv('STORES_MICROSERVICE_URL')
 USERS_MICROSERVICE_URL = os.getenv('USERS_MICROSERVICE_URL')
+DELIVERY_MICROSERVICE_URL = os.getenv('USERs_MICROSERVICE_URL')
 
 
 # Application definition

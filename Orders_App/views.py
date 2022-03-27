@@ -1,6 +1,6 @@
 import random
 
-from .interconnect import send_request_post
+from .interconnect import send_request_post, send_request_get
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -11,8 +11,10 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from django.http import HttpResponse, JsonResponse
 from rest_framework import renderers
+from django.contrib.gis.geos import Point
 import json
 import datetime
+import requests
 from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
 
 
@@ -93,6 +95,7 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
                 except Exception as e1:
                     ValidationError(e1)
         item_list = new_item_list
+        print(serializer.data['store_id'])
         try:
             serializer.save(items=item_list)
         except Exception as e:
@@ -177,3 +180,26 @@ def pastOrders(request):
     orders = Order.objects.filter(customer=user_id)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
+
+@api_view(['POST'])
+def orderPrepared(request, *args, **kwargs):
+    order = Order.objects.get(id=kwargs['pk'])
+
+    url = STORES_MICROSERVICE_URL+'/stores/'+str(order.store_id)
+    succ, resp = send_request_get(url)
+    if not succ:
+        raise ValidationError("/stores/<int:pk> : Could not connect to stores microservices")
+
+    resp = resp.json()
+    body = {'pickup_address': resp['address'],
+            'pickup_location_x': resp['locLongitude'],
+            'pickup_location_y': resp['locLatitude'],
+            'delivery_address': order.delivery_address,
+            'order_id': order.id}
+    url = DELIVERY_MICROSERVICE_URL+'/delivery/'
+    success, response = send_request_post(url, body)
+    if not success:
+        raise ValidationError("/delivery : Could not connect to delivery microservices")
+    response = response.json()
+    print(response)
+    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['id']})

@@ -25,6 +25,7 @@ urlpatterns = [
     path('order/<int:pk>', views.OrderDetail.as_view(), name="order-detail"),
     path('order/past_orders', views.pastOrders, name="past_order"),
     path('order/<int:pk>/cancel', views.OrderCancel.as_view(), name="order-cancel"),
+    path('order/<int:pk>/prepared', views.orderPrepared, name="order_prepared"),
     path('review/<int:pk>', views.ReviewDetails.as_view(), name="review-detail"),
     path('order/verifyotp/<int:pk>', views.VerifyOTP.as_view(), name="OTP-verification"),
     path('order/update_status/<int:pk>', views.UpdateOrderStatus.as_view(), name='update-order-status')
