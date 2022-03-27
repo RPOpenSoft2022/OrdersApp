@@ -17,7 +17,7 @@ import json
 import datetime
 import requests
 from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
-
+month_code=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 # To laod environment variables
 
@@ -220,3 +220,26 @@ def orderPrepared(request, *args, **kwargs):
     response = response.json()
     print(response)
     return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['id']})
+
+
+@api_view(["GET"])
+def ordershistory(request):
+    i=1
+    response = {}
+    currentMonth = datetime.datetime.now().month
+    currentYear = datetime.datetime.now().year
+    while i<9:
+        totalorders=0
+        totalcost=0
+        orders=Order.objects.filter(order_time__year=currentYear,order_time__month=currentMonth)
+        for order in orders:
+            totalorders=totalorders+1
+            totalcost=totalcost+order.cost
+        print(currentMonth)
+        response[month_code[currentMonth]] = {"total Orders": totalorders, "total_sales":totalcost }
+        currentMonth=currentMonth-1
+        if (currentMonth==-1):
+            currentMonth=11
+            currentYear=currentYear-1
+        i += 1
+    return Response(response)
