@@ -219,7 +219,7 @@ def orderPrepared(request, *args, **kwargs):
         raise ValidationError("/delivery : Could not connect to delivery microservices")
     response = response.json()
     print(response)
-    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['id']})
+    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['delivery_partner']})
 
 
 @api_view(["GET"])
