@@ -1,9 +1,10 @@
 import random
 
 from .interconnect import send_request_post, send_request_get
+import razorpay
 from rest_framework.exceptions import ValidationError
 from Orders_App.models import *
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework import viewsets
 from Orders_App.serializers import OrderSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
@@ -28,49 +29,64 @@ def api_root(request, format=None):
 
 
 class OrderList(generics.ListCreateAPIView):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
-
-    def get_queryset(self):
-        number = str(self.request.headers['user-phone-number'])
-        token = self.request.headers['Token']
-        num = str(number)
-        if token:
-            if len(num) == 10:
-                return Order.objects.all()
-            else:
-                print("Invalid request")
-                raise ValidationError('Phone number invalid')
-        else:
-            raise ValidationError('Token not provided')
+    queryset = Order.objects.all()
 
     def perform_create(self, serializer):
+        print(self.request.data)
         cost = 0
         url = STORES_MICROSERVICE_URL + '/order_summary/'
-        succ, resp = send_request_post(url, {"item_list":self.request.POST.get("item_list")})
+        succ, resp = send_request_post(url, {"item_list": self.request.POST.get("item_list")})
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
             resp = resp.json()
-            cost = resp['total_cost']        
+            cost = resp['total_cost']
 
             item_list = []
             items = resp['item_list']
             for item in items:
-                item_list.append(Item.objects.create(itemId=item["item"],name=item["name"], quantity=item["quantity"], item_price=item["item_price"]))
+                item_list.append(Item.objects.create(itemId=item["item"], name=item["name"], quantity=item["quantity"],
+                                                     item_price=item["item_price"]))
 
         # call Order Validation API
         body = {'store_id': self.request.POST.get("store_id"),
                 'item_list': self.request.POST.get("item_list"),
                 'customer': self.request.POST.get("customer"),
                 'transaction_token': self.request.POST.get("transaction_token")}
-        url = STORES_MICROSERVICE_URL+'/verify_order/'
+        url = STORES_MICROSERVICE_URL + '/verify_order/'
         success, response = send_request_post(url, body)
         if not success:
             raise ValidationError("/verify_order : Could not connect to stores microservices")
         response = response.json()
         if response['msg'] == 'true':
-            serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost=cost, store_name=response["store_name"])
+            client = razorpay.Client(auth=("rzp_test_VQzdw3Uw16TNCX", "28FFWy85MFzJPr8BDERerR3K"))
+            DATA = {
+                "amount": cost,
+                "currency": "INR"
+            }
+            payment = client.order.create(data=DATA)
+            if payment["id"]:
+                data = {
+                    'items': item_list,
+                    'order_time':datetime.time,
+                    'delivery_otp':random.randint(100000, 999999),
+                    'cost':cost,
+                    'store_name':response["store_name"],
+                    'transaction_token':payment["id"]
+                }
+                serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost=cost, store_name=response["store_name"], transaction_token=payment["id"])
+                response = {
+                    "success": True,
+                    "message": "Payment Success",
+                    "order_id": serializer.data["order_id"],
+                    "transaction_token": payment["id"],
+                    "amount": payment["amount"]
+                }
+                return Response(response)
+            else:
+                response = {"success": False, "message": "Payment Failure"}
+                return Response(response)
         else:
             raise ValidationError("Order Could not be placed ")
 
@@ -144,7 +160,7 @@ class VerifyOTP(generics.UpdateAPIView):
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
         if request.POST.get('delivery_otp') == str(order.delivery_otp):
-            order.delivery_status= Order_status[3]
+            order.delivery_status = Order_status[3]
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
         else:
@@ -173,6 +189,7 @@ class UpdateOrderStatus(generics.UpdateAPIView):
             return Response(serializer.data)
         else:
             raise ValidationError("Invalid status code")
+
 
 @api_view(["GET"])
 def pastOrders(request):
