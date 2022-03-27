@@ -177,3 +177,4 @@ def pastOrders(request):
     orders = Order.objects.filter(customer=user_id)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
+
