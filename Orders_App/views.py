@@ -8,12 +8,12 @@ from rest_framework import viewsets
 from Orders_App.serializers import OrderSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from django.http import HttpResponse, JsonResponse
 from rest_framework import renderers
-from django.contrib.gis.geos import Point
-import json
+import json, jwt
 import datetime
 import requests
 from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
@@ -28,15 +28,20 @@ def api_root(request, format=None):
     })
 
 
-class OrderList(generics.ListCreateAPIView):
+class OrderList(APIView):
     serializer_class = OrderSerializer
     queryset = Order.objects.all()
 
-    def perform_create(self, serializer):
+    def get(self, request):
+        orders = Order.objects.all()
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+    
+    def post(self, request):
         print(self.request.data)
         cost = 0
         url = STORES_MICROSERVICE_URL + '/order_summary/'
-        succ, resp = send_request_post(url, {"item_list": self.request.POST.get("item_list")})
+        succ, resp = send_request_post(url, {"item_list": self.request.data["item_list"]})
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
@@ -46,14 +51,13 @@ class OrderList(generics.ListCreateAPIView):
             item_list = []
             items = resp['item_list']
             for item in items:
-                item_list.append(Item.objects.create(itemId=item["item"], name=item["name"], quantity=item["quantity"],
-                                                     item_price=item["item_price"]))
+                item_list.append(Item.objects.create(itemId=item["id"], name=item["name"], quantity=item["quantity"],
+                                                     item_price=item["price"]))
 
         # call Order Validation API
-        body = {'store_id': self.request.POST.get("store_id"),
-                'item_list': self.request.POST.get("item_list"),
-                'customer': self.request.POST.get("customer"),
-                'transaction_token': self.request.POST.get("transaction_token")}
+        body = {'store_id': self.request.data["store_id"],
+                'item_list': self.request.data["item_list"]}
+        print(body)
         url = STORES_MICROSERVICE_URL + '/verify_order/'
         success, response = send_request_post(url, body)
         if not success:
@@ -75,7 +79,21 @@ class OrderList(generics.ListCreateAPIView):
                     'store_name':response["store_name"],
                     'transaction_token':payment["id"]
                 }
-                serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost=cost, store_name=response["store_name"], transaction_token=payment["id"])
+                customer = jwt.decode(self.request.data['token'], "django-insecure--&l&@&=367*&9v_agoyln$dk&*4(u$a-7orvvr@^scp8^62cs*", algorithms=["HS256"])['id']
+                # data = {
+                #     "items": item_list,
+                #     "order_time": datetime.time,
+                #     "delivery_otp": random.randint(100000, 999999),
+                #     "delivery_address": request.data["delivery_address"],
+                #     "cost": cost,
+                #     "store_id": request.data["store_id"],
+                #     "store_name": response['store_name'],
+                #     "transaction_token": payment["id"],
+                #     "customer": customer
+                # }
+                order = Order.objects.create(delivery_otp=random.randint(100000, 999999), delivery_address=request.data["delivery_address"], cost=cost, store_id=request.data["store_id"], store_name=response['store_name'], transaction_token=payment["id"], customer=customer)
+                order.items.set(item_list)
+                serializer = OrderSerializer(order)
                 response = {
                     "success": True,
                     "message": "Payment Success",
@@ -83,7 +101,7 @@ class OrderList(generics.ListCreateAPIView):
                     "transaction_token": payment["id"],
                     "amount": payment["amount"]
                 }
-                return Response(response)
+                return Response(response, status=status.HTTP_201_CREATED)
             else:
                 response = {"success": False, "message": "Payment Failure"}
                 return Response(response)
