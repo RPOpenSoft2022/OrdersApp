@@ -66,7 +66,7 @@ class OrderList(APIView):
         if response['msg'] == 'true':
             client = razorpay.Client(auth=("rzp_test_VQzdw3Uw16TNCX", "28FFWy85MFzJPr8BDERerR3K"))
             DATA = {
-                "amount": cost,
+                "amount": cost*100,
                 "currency": "INR"
             }
             payment = client.order.create(data=DATA)
@@ -75,7 +75,7 @@ class OrderList(APIView):
                     'items': item_list,
                     'order_time':datetime.time,
                     'delivery_otp':random.randint(100000, 999999),
-                    'cost':cost*100,
+                    'cost':cost,
                     'store_name':response["store_name"],
                     'transaction_token':payment["id"]
                 }
