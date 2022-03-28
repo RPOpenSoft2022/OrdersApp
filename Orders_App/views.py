@@ -17,7 +17,9 @@ import json, jwt
 import datetime
 import requests
 from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
-month_code=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+month_code = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
 
 # To laod environment variables
 
@@ -36,7 +38,7 @@ class OrderList(APIView):
         orders = Order.objects.all()
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
-    
+
     def post(self, request):
         print(self.request.data)
         cost = 0
@@ -45,7 +47,7 @@ class OrderList(APIView):
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
-            resp = resp.json()
+            # resp = resp.json()
             cost = resp['total_cost']
 
             item_list = []
@@ -73,13 +75,15 @@ class OrderList(APIView):
             if payment["id"]:
                 data = {
                     'items': item_list,
-                    'order_time':datetime.time,
-                    'delivery_otp':random.randint(100000, 999999),
-                    'cost':cost,
-                    'store_name':response["store_name"],
-                    'transaction_token':payment["id"]
+                    'order_time': datetime.time,
+                    'delivery_otp': random.randint(100000, 999999),
+                    'cost': cost,
+                    'store_name': response["store_name"],
+                    'transaction_token': payment["id"]
                 }
-                customer = jwt.decode(self.request.data['token'], "django-insecure--&l&@&=367*&9v_agoyln$dk&*4(u$a-7orvvr@^scp8^62cs*", algorithms=["HS256"])['id']
+                customer = jwt.decode(self.request.data['token'],
+                                      "django-insecure--&l&@&=367*&9v_agoyln$dk&*4(u$a-7orvvr@^scp8^62cs*",
+                                      algorithms=["HS256"])['id']
                 # data = {
                 #     "items": item_list,
                 #     "order_time": datetime.time,
@@ -91,7 +95,10 @@ class OrderList(APIView):
                 #     "transaction_token": payment["id"],
                 #     "customer": customer
                 # }
-                order = Order.objects.create(delivery_otp=random.randint(100000, 999999), delivery_address=request.data["delivery_address"], cost=cost, store_id=request.data["store_id"], store_name=response['store_name'], transaction_token=payment["id"], customer=customer)
+                order = Order.objects.create(delivery_otp=random.randint(100000, 999999),
+                                             delivery_address=request.data["delivery_address"], cost=cost,
+                                             store_id=request.data["store_id"], store_name=response['store_name'],
+                                             transaction_token=payment["id"], customer=customer)
                 order.items.set(item_list)
                 serializer = OrderSerializer(order)
                 response = {
@@ -215,11 +222,12 @@ def pastOrders(request, userId):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
+
 @api_view(['POST'])
 def orderPrepared(request, *args, **kwargs):
     order = Order.objects.get(id=kwargs['pk'])
 
-    url = STORES_MICROSERVICE_URL+'/stores/'+str(order.store_id)
+    url = STORES_MICROSERVICE_URL + '/stores/' + str(order.store_id)
     succ, resp = send_request_get(url)
     if not succ:
         raise ValidationError("/stores/<int:pk> : Could not connect to stores microservices")
@@ -230,7 +238,7 @@ def orderPrepared(request, *args, **kwargs):
             'pickup_location_y': resp['locLatitude'],
             'delivery_address': order.delivery_address,
             'order_id': order.id}
-    url = DELIVERY_MICROSERVICE_URL+'/delivery/'
+    url = DELIVERY_MICROSERVICE_URL + '/delivery/'
     success, response = send_request_post(url, body)
     if not success:
         raise ValidationError("/delivery : Could not connect to delivery microservices")
@@ -241,22 +249,43 @@ def orderPrepared(request, *args, **kwargs):
 
 @api_view(["GET"])
 def ordershistory(request):
-    i=1
+    i = 1
     response = {}
     currentMonth = datetime.datetime.now().month
     currentYear = datetime.datetime.now().year
-    while i<9:
-        totalorders=0
-        totalcost=0
-        orders=Order.objects.filter(order_time__year=currentYear,order_time__month=currentMonth)
+    while i < 9:
+        totalorders = 0
+        totalcost = 0
+        orders = Order.objects.filter(order_time__year=currentYear, order_time__month=currentMonth)
         for order in orders:
-            totalorders=totalorders+1
-            totalcost=totalcost+order.cost
+            totalorders = totalorders + 1
+            totalcost = totalcost + order.cost
         print(currentMonth)
-        response[month_code[currentMonth]] = {"total Orders": totalorders, "total_sales":totalcost }
-        currentMonth=currentMonth-1
-        if (currentMonth==-1):
-            currentMonth=11
-            currentYear=currentYear-1
+        response[month_code[currentMonth]] = {"total Orders": totalorders, "total_sales": totalcost}
+        currentMonth = currentMonth - 1
+        if (currentMonth == -1):
+            currentMonth = 11
+            currentYear = currentYear - 1
         i += 1
     return Response(response)
+
+
+@api_view(["POST"])
+def razorverification(request, *args, **kwargs):
+    order = Order.objects.get(id=kwargs['pk'])
+    status = request.POST.get('status')
+    if status == '0':
+        order.delete()
+        return JsonResponse({"msg": "Payment Failure Order Could not be placed "})
+    else:
+        items = order.items
+        item_list = []
+        for item in items.all():
+            item_list.append({'id': item.itemId, 'quantity': item.quantity})
+        body = {'item_list': item_list, 'store_id': order.store_id}
+        url = STORES_MICROSERVICE_URL + '/updateQuantity/'
+        success, response = send_request_post(url, body)
+        if not success:
+            raise ValidationError("/updateQuantity : Could not connect to stores microservices")
+        else:
+            return JsonResponse({"msg": "Order Has been Placed Successfully "})
