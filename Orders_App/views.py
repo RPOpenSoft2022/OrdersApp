@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from django.http import HttpResponse, JsonResponse
 from rest_framework import renderers
-from django.contrib.gis.geos import Point
 import json
 import datetime
 import requests
