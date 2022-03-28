@@ -75,7 +75,7 @@ class OrderList(APIView):
                     'items': item_list,
                     'order_time':datetime.time,
                     'delivery_otp':random.randint(100000, 999999),
-                    'cost':cost,
+                    'cost':cost*100,
                     'store_name':response["store_name"],
                     'transaction_token':payment["id"]
                 }
