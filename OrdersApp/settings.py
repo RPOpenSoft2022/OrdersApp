@@ -29,11 +29,13 @@ SECRET_KEY = 'django-insecure-1fjxzs^jt5q@khm3^kmr79p^=&tc2@9p+k=d+o978g##)8duzc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
-DELIVERY_MICROSERVICE_URL = os.getenv('DELIVERYS_MICROSERVICE_URL')
+# URLS for the microservices
+ORDERS_MICROSERVICE_URL = os.getenv('ORDERS_MICROSERVICE_URL')
 STORES_MICROSERVICE_URL = os.getenv('STORES_MICROSERVICE_URL')
 USERS_MICROSERVICE_URL = os.getenv('USERS_MICROSERVICE_URL')
+DELIVERY_MICROSERVICE_URL = os.getenv('DELIVERY_MICROSERVICE_URL')
 
 
 # Application definition
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -60,6 +63,27 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',    
     'django.middleware.common.CommonMiddleware',
 ]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS=True
+
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers)
 
 ROOT_URLCONF = 'OrdersApp.urls'
 
@@ -88,6 +112,12 @@ WSGI_APPLICATION = 'OrdersApp.wsgi.application'
 
 DATABASES = {
     'default': {
+        # 'ENGINE': 'django.db.backends.postgresql',
+        # 'NAME': os.getenv('DATABASE_NAME'),
+        # 'USER': os.getenv('DATABASE_USER'),
+        # 'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+        # 'HOST': '127.0.0.1',
+        # 'PORT': '5432',
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }

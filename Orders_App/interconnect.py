@@ -16,3 +16,20 @@ def send_request_post(url, data):
             break
 
     return success, resp
+
+
+def send_request_get(url):
+    i = 0
+    success = False
+    resp = None
+    while i<4:
+        try:
+            resp = requests.get(url=url, timeout=1)
+        except:
+            i = i+1
+        else:
+            success = True
+            break
+
+    return success, resp
+
