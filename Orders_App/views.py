@@ -288,4 +288,6 @@ def razorverification(request, *args, **kwargs):
         if not success:
             raise ValidationError("/updateQuantity : Could not connect to stores microservices")
         else:
+            order.delivery_status=Order_status[1]
+            order.save()
             return JsonResponse({"msg": "Order Has been Placed Successfully "})
