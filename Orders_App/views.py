@@ -96,14 +96,14 @@ class OrderList(APIView):
                 serializer = OrderSerializer(order)
                 response = {
                     "success": True,
-                    "message": "Payment Success",
+                    "message": "Payment request created succesfully",
                     "order_id": serializer.data["order_id"],
                     "transaction_token": payment["id"],
                     "amount": payment["amount"]
                 }
                 return Response(response, status=status.HTTP_201_CREATED)
             else:
-                response = {"success": False, "message": "Payment Failure"}
+                response = {"success": False, "message": "Payment request could not be created"}
                 return Response(response)
         else:
             raise ValidationError("Order Could not be placed ")
