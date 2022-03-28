@@ -1,7 +1,7 @@
 from django.db import models
 
 Order_status = (
-    ('PENDING', 'Order Pending'),
+    ('PENDING', 'Payment Pending'),
     ('ACCEPTED', 'Preparing Item'),
     ('OUT_FOR_DELIVERY', 'Out for Delivery'),
     ('DELIVERED', 'Delivered'),
