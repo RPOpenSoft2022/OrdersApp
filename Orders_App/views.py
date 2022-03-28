@@ -192,9 +192,8 @@ class UpdateOrderStatus(generics.UpdateAPIView):
 
 
 @api_view(["GET"])
-def pastOrders(request):
-    user_id = request.data['user_id']
-    orders = Order.objects.filter(customer=user_id)
+def pastOrders(request, userId):
+    orders = Order.objects.filter(customer=userId)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
