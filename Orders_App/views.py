@@ -81,7 +81,7 @@ class OrderList(APIView):
                     'store_name': response["store_name"],
                     'transaction_token': payment["id"]
                 }
-                customer = jwt.decode(self.request.data['token'], SECRET_KEY, algorithms=["HS256"])['id']
+                customer = jwt.decode(self.request.headers['token'], SECRET_KEY, algorithms=["HS256"])['id']
                 # data = {
                 #     "items": item_list,
                 #     "order_time": datetime.time,
@@ -215,7 +215,7 @@ class UpdateOrderStatus(generics.UpdateAPIView):
 
 @api_view(["GET"])
 def pastOrders(request):
-    userId = jwt.decode(request.data['token'], SECRET_KEY, algorithms=["HS256"])['id']
+    userId = jwt.decode(request.headers['token'], SECRET_KEY, algorithms=["HS256"])['id']
     orders = Order.objects.filter(customer=userId)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
@@ -245,6 +245,9 @@ def orderPrepared(request, *args, **kwargs):
         raise ValidationError("/delivery : Could not connect to delivery microservices")
     response = response.json()
     print(response)
+    if "id" not in response:
+        return Response({"msg": "Delivery already created"}, status=status.HTTP_400_BAD_REQUEST)
+
     return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['delivery_partner']})
 
 

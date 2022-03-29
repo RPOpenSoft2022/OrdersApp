@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('order/', views.OrderList.as_view(), name="order-list"),
     path('order/<int:pk>', views.OrderDetail.as_view(), name="order-detail"),
-    path('order/past_orders/<int:userId>', views.pastOrders, name="past_order"),
+    path('order/past_orders', views.pastOrders, name="past_order"),
     path('order/<int:pk>/cancel', views.OrderCancel.as_view(), name="order-cancel"),
     path('order/<int:pk>/prepared', views.orderPrepared, name="order_prepared"),
     path('review/<int:pk>', views.ReviewDetails.as_view(), name="review-detail"),
