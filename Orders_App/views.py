@@ -184,7 +184,7 @@ class VerifyOTP(generics.CreateAPIView):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
-        if request.POST.get('delivery_otp') == str(order.delivery_otp):
+        if request.data['delivery_otp'] == order.delivery_otp:
             order.delivery_status = Order_status[3]
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
@@ -250,7 +250,7 @@ def orderPrepared(request, *args, **kwargs):
     if "id" not in response:
         return Response({"msg": "Delivery already created"}, status=status.HTTP_400_BAD_REQUEST)
 
-    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['delivery_partner']})
+    return JsonResponse({"msg": "Succesfully created delilvery", "delivery": response['delivery_partner']})
 
 
 @api_view(["GET"])
