@@ -47,7 +47,7 @@ class OrderList(APIView):
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
-            # resp = resp.json()
+            resp = resp.json()
             cost = resp['total_cost']
 
             item_list = []
