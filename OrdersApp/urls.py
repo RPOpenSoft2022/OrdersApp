@@ -30,7 +30,8 @@ urlpatterns = [
     path('order/verifyotp/<int:pk>', views.VerifyOTP.as_view(), name="OTP-verification"),
     path('order/update_status/<int:pk>', views.UpdateOrderStatus.as_view(), name='update-order-status'),
     path('last_month_sales/', views.ordershistory, name="order_history"),
-    path('order/<int:pk>/payment', views.razorverification, name="razor-verification")
+    path('order/<int:pk>/payment', views.razorverification, name="razor-verification"),
+    path('order/<int:store_id>', views.storeOrders, name="store-orders")
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

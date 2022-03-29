@@ -1,5 +1,7 @@
 import random
 
+from Orders_App import serializers
+
 from .interconnect import send_request_post, send_request_get
 import razorpay
 from rest_framework.exceptions import ValidationError
@@ -174,11 +176,11 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 
-class VerifyOTP(generics.UpdateAPIView):
+class VerifyOTP(generics.CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    def update(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
@@ -190,11 +192,11 @@ class VerifyOTP(generics.UpdateAPIView):
             return Response({'Message': failure_message, 'otpverification_status': False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateOrderStatus(generics.UpdateAPIView):
+class UpdateOrderStatus(generics.CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    def update(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
         """
         0 - Pending
@@ -203,7 +205,7 @@ class UpdateOrderStatus(generics.UpdateAPIView):
         3 - Delivered
         4 - Canceled
         """
-        target_status = int(request.POST.get("target_status"))
+        target_status = int(request.data["target_status"])
         if 0 <= target_status < 5:
             order.delivery_status = Order_status[target_status]
             order.save()
@@ -295,3 +297,9 @@ def razorverification(request, *args, **kwargs):
             order.delivery_status=Order_status[1]
             order.save()
             return JsonResponse({"msg": "Order Has been Placed Successfully "})
+
+@api_view(['GET'])
+def storeOrders(request, store_id):
+    orders = Order.objects.filter(store_id=store_id)
+    serializers = OrderSerializer(orders, many=True)
+    return Response(serializers.data, status=status.HTTP_200_OK)
