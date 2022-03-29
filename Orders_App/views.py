@@ -16,7 +16,7 @@ from rest_framework import renderers
 import json, jwt
 import datetime
 import requests
-from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
+from OrdersApp.settings import SECRET_KEY, DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
 
 month_code = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -81,9 +81,7 @@ class OrderList(APIView):
                     'store_name': response["store_name"],
                     'transaction_token': payment["id"]
                 }
-                customer = jwt.decode(self.request.data['token'],
-                                      "django-insecure--&l&@&=367*&9v_agoyln$dk&*4(u$a-7orvvr@^scp8^62cs*",
-                                      algorithms=["HS256"])['id']
+                customer = jwt.decode(self.request.data['token'], SECRET_KEY, algorithms=["HS256"])['id']
                 # data = {
                 #     "items": item_list,
                 #     "order_time": datetime.time,
@@ -189,8 +187,7 @@ class VerifyOTP(generics.UpdateAPIView):
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
         else:
-            return Response({'Message': failure_message, 'otpverification_status': False},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({'Message': failure_message, 'otpverification_status': False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpdateOrderStatus(generics.UpdateAPIView):
@@ -217,7 +214,8 @@ class UpdateOrderStatus(generics.UpdateAPIView):
 
 
 @api_view(["GET"])
-def pastOrders(request, userId):
+def pastOrders(request):
+    userId = jwt.decode(request.data['token'], SECRET_KEY, algorithms=["HS256"])['id']
     orders = Order.objects.filter(customer=userId)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
@@ -234,10 +232,13 @@ def orderPrepared(request, *args, **kwargs):
 
     resp = resp.json()
     body = {'pickup_address': resp['address'],
-            'pickup_location_x': resp['locLongitude'],
-            'pickup_location_y': resp['locLatitude'],
+            'pickup_location': {
+                "latitude": resp['locLongitude'], 
+                "longitude": resp['locLatitude']
+                },
             'delivery_address': order.delivery_address,
             'order_id': order.id}
+            
     url = DELIVERY_MICROSERVICE_URL + '/delivery/'
     success, response = send_request_post(url, body)
     if not success:
