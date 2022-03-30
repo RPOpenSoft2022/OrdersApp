@@ -98,7 +98,9 @@ class OrderList(APIView):
                 order = Order.objects.create(delivery_otp=random.randint(100000, 999999),
                                              delivery_address=request.data["delivery_address"], cost=cost,
                                              store_id=request.data["store_id"], store_name=response['store_name'],
-                                             transaction_token=payment["id"], customer=customer)
+                                             transaction_token=payment["id"], customer=customer,
+                                             customer_name=request.data["customer_name"], 
+                                             customer_phone_no=request.data["customer_phone_no"])
                 order.items.set(item_list)
                 serializer = OrderSerializer(order)
                 response = {
@@ -184,7 +186,7 @@ class VerifyOTP(generics.CreateAPIView):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
-        if request.data['delivery_otp'] == order.delivery_otp:
+        if int(request.data['delivery_otp']) == order.delivery_otp:
             order.delivery_status = Order_status[3]
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
@@ -233,13 +235,17 @@ def orderPrepared(request, *args, **kwargs):
         raise ValidationError("/stores/<int:pk> : Could not connect to stores microservices")
 
     resp = resp.json()
-    body = {'pickup_address': resp['address'],
-            'pickup_location': {
-                "latitude": resp['locLongitude'], 
-                "longitude": resp['locLatitude']
-                },
-            'delivery_address': order.delivery_address,
-            'order_id': order.id}
+    body = {
+        'pickup_address': resp['address'],
+        'pickup_location': {
+            "latitude": resp['locLongitude'], 
+            "longitude": resp['locLatitude']
+            },
+        'delivery_address': order.delivery_address,
+        'order_id': order.id,
+        'customer_name': order.customer_name,
+        'customer_phone_number': order.customer_phone_no
+    }
             
     url = DELIVERY_MICROSERVICE_URL + '/delivery/'
     success, response = send_request_post(url, body)
@@ -250,7 +256,9 @@ def orderPrepared(request, *args, **kwargs):
     if "id" not in response:
         return Response({"msg": "Delivery already created"}, status=status.HTTP_400_BAD_REQUEST)
 
-    return JsonResponse({"msg": "Succesfully created delilvery", "delivery": response['delivery_partner']})
+    order.delivery_phone_no = response['delivery_phone_no']
+    order.save()
+    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_person_id": response['delivery_partner'], "delivery_phone_no": response['delivery_phone_no']})
 
 
 @api_view(["GET"])
