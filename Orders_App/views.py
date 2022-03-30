@@ -184,7 +184,7 @@ class VerifyOTP(generics.CreateAPIView):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
-        if request.data['delivery_otp'] == order.delivery_otp:
+        if int(request.data['delivery_otp']) == order.delivery_otp:
             order.delivery_status = Order_status[3]
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
