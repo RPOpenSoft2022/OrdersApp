@@ -1,5 +1,7 @@
 import random
 
+from Orders_App import serializers
+
 from .interconnect import send_request_post, send_request_get
 import razorpay
 from rest_framework.exceptions import ValidationError
@@ -8,15 +10,18 @@ from rest_framework import viewsets
 from Orders_App.serializers import OrderSerializer
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from django.http import HttpResponse, JsonResponse
 from rest_framework import renderers
-import json
+import json, jwt
 import datetime
 import requests
-from OrdersApp.settings import DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
-month_code=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+from OrdersApp.settings import SECRET_KEY, DELIVERY_MICROSERVICE_URL, STORES_MICROSERVICE_URL, USERS_MICROSERVICE_URL
+
+month_code = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
 
 # To laod environment variables
 
@@ -27,15 +32,20 @@ def api_root(request, format=None):
     })
 
 
-class OrderList(generics.ListCreateAPIView):
+class OrderList(APIView):
     serializer_class = OrderSerializer
     queryset = Order.objects.all()
 
-    def perform_create(self, serializer):
+    def get(self, request):
+        orders = Order.objects.all()
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
         print(self.request.data)
         cost = 0
         url = STORES_MICROSERVICE_URL + '/order_summary/'
-        succ, resp = send_request_post(url, {"item_list": self.request.POST.get("item_list")})
+        succ, resp = send_request_post(url, {"item_list": self.request.data["item_list"]})
         if not succ:
             raise ValidationError("/order_summary : Could not connect to stores microservices")
         else:
@@ -45,14 +55,13 @@ class OrderList(generics.ListCreateAPIView):
             item_list = []
             items = resp['item_list']
             for item in items:
-                item_list.append(Item.objects.create(itemId=item["item"], name=item["name"], quantity=item["quantity"],
-                                                     item_price=item["item_price"]))
+                item_list.append(Item.objects.create(itemId=item["id"], name=item["name"], quantity=item["quantity"],
+                                                     item_price=item["price"]))
 
         # call Order Validation API
-        body = {'store_id': self.request.POST.get("store_id"),
-                'item_list': self.request.POST.get("item_list"),
-                'customer': self.request.POST.get("customer"),
-                'transaction_token': self.request.POST.get("transaction_token")}
+        body = {'store_id': self.request.data["store_id"],
+                'item_list': self.request.data["item_list"]}
+        print(body)
         url = STORES_MICROSERVICE_URL + '/verify_order/'
         success, response = send_request_post(url, body)
         if not success:
@@ -61,30 +70,47 @@ class OrderList(generics.ListCreateAPIView):
         if response['msg'] == 'true':
             client = razorpay.Client(auth=("rzp_test_VQzdw3Uw16TNCX", "28FFWy85MFzJPr8BDERerR3K"))
             DATA = {
-                "amount": cost,
+                "amount": cost*100,
                 "currency": "INR"
             }
             payment = client.order.create(data=DATA)
             if payment["id"]:
                 data = {
                     'items': item_list,
-                    'order_time':datetime.time,
-                    'delivery_otp':random.randint(100000, 999999),
-                    'cost':cost,
-                    'store_name':response["store_name"],
-                    'transaction_token':payment["id"]
+                    'order_time': datetime.time,
+                    'delivery_otp': random.randint(100000, 999999),
+                    'cost': cost,
+                    'store_name': response["store_name"],
+                    'transaction_token': payment["id"]
                 }
-                serializer.save(items=item_list, order_time=datetime.time, delivery_otp=random.randint(100000, 999999), cost=cost, store_name=response["store_name"], transaction_token=payment["id"])
+                customer = jwt.decode(request.headers['Authorization'].split(' ')[-1], SECRET_KEY, algorithms=["HS256"])['id']
+                # data = {
+                #     "items": item_list,
+                #     "order_time": datetime.time,
+                #     "delivery_otp": random.randint(100000, 999999),
+                #     "delivery_address": request.data["delivery_address"],
+                #     "cost": cost,
+                #     "store_id": request.data["store_id"],
+                #     "store_name": response['store_name'],
+                #     "transaction_token": payment["id"],
+                #     "customer": customer
+                # }
+                order = Order.objects.create(delivery_otp=random.randint(100000, 999999),
+                                             delivery_address=request.data["delivery_address"], cost=cost,
+                                             store_id=request.data["store_id"], store_name=response['store_name'],
+                                             transaction_token=payment["id"], customer=customer)
+                order.items.set(item_list)
+                serializer = OrderSerializer(order)
                 response = {
                     "success": True,
-                    "message": "Payment Success",
+                    "message": "Payment request created succesfully",
                     "order_id": serializer.data["order_id"],
                     "transaction_token": payment["id"],
                     "amount": payment["amount"]
                 }
-                return Response(response)
+                return Response(response, status=status.HTTP_201_CREATED)
             else:
-                response = {"success": False, "message": "Payment Failure"}
+                response = {"success": False, "message": "Payment request could not be created"}
                 return Response(response)
         else:
             raise ValidationError("Order Could not be placed ")
@@ -150,28 +176,27 @@ class ReviewDetails(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 
-class VerifyOTP(generics.UpdateAPIView):
+class VerifyOTP(generics.CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    def update(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
         success_message = 'OTP VERIFICATION SUCCESFULL'
         failure_message = 'Entered OTP is incorrect'
-        if request.POST.get('delivery_otp') == str(order.delivery_otp):
+        if request.data['delivery_otp'] == order.delivery_otp:
             order.delivery_status = Order_status[3]
             order.save()
             return Response({'Message ': success_message, 'otpverification_status': True, }, status=status.HTTP_200_OK)
         else:
-            return Response({'Message': failure_message, 'otpverification_status': False},
-                            status=status.HTTP_404_NOT_FOUND)
+            return Response({'Message': failure_message, 'otpverification_status': False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateOrderStatus(generics.UpdateAPIView):
+class UpdateOrderStatus(generics.CreateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    def update(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         order = Order.objects.get(id=kwargs['pk'])
         """
         0 - Pending
@@ -180,7 +205,7 @@ class UpdateOrderStatus(generics.UpdateAPIView):
         3 - Delivered
         4 - Canceled
         """
-        target_status = int(request.POST.get("target_status"))
+        target_status = int(request.data["target_status"])
         if 0 <= target_status < 5:
             order.delivery_status = Order_status[target_status]
             order.save()
@@ -191,53 +216,90 @@ class UpdateOrderStatus(generics.UpdateAPIView):
 
 
 @api_view(["GET"])
-def pastOrders(request, userId):
+def pastOrders(request):
+    userId = jwt.decode(request.headers['Authorization'].split(' ')[-1], SECRET_KEY, algorithms=["HS256"])['id']
     orders = Order.objects.filter(customer=userId)
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 def orderPrepared(request, *args, **kwargs):
     order = Order.objects.get(id=kwargs['pk'])
 
-    url = STORES_MICROSERVICE_URL+'/stores/'+str(order.store_id)
+    url = STORES_MICROSERVICE_URL + '/stores/' + str(order.store_id)
     succ, resp = send_request_get(url)
     if not succ:
         raise ValidationError("/stores/<int:pk> : Could not connect to stores microservices")
 
     resp = resp.json()
     body = {'pickup_address': resp['address'],
-            'pickup_location_x': resp['locLongitude'],
-            'pickup_location_y': resp['locLatitude'],
+            'pickup_location': {
+                "latitude": resp['locLongitude'], 
+                "longitude": resp['locLatitude']
+                },
             'delivery_address': order.delivery_address,
             'order_id': order.id}
-    url = DELIVERY_MICROSERVICE_URL+'/delivery/'
+            
+    url = DELIVERY_MICROSERVICE_URL + '/delivery/'
     success, response = send_request_post(url, body)
     if not success:
         raise ValidationError("/delivery : Could not connect to delivery microservices")
     response = response.json()
     print(response)
-    return JsonResponse({"msg": "Succesfully created delilvery", "delivery_id": response['delivery_partner']})
+    if "id" not in response:
+        return Response({"msg": "Delivery already created"}, status=status.HTTP_400_BAD_REQUEST)
+
+    return JsonResponse({"msg": "Succesfully created delilvery", "delivery": response['delivery_partner']})
 
 
 @api_view(["GET"])
 def ordershistory(request):
-    i=1
+    i = 1
     response = {}
     currentMonth = datetime.datetime.now().month
     currentYear = datetime.datetime.now().year
-    while i<9:
-        totalorders=0
-        totalcost=0
-        orders=Order.objects.filter(order_time__year=currentYear,order_time__month=currentMonth)
+    while i < 9:
+        totalorders = 0
+        totalcost = 0
+        orders = Order.objects.filter(order_time__year=currentYear, order_time__month=currentMonth)
         for order in orders:
-            totalorders=totalorders+1
-            totalcost=totalcost+order.cost
+            totalorders = totalorders + 1
+            totalcost = totalcost + order.cost
         print(currentMonth)
-        response[month_code[currentMonth]] = {"total Orders": totalorders, "total_sales":totalcost }
-        currentMonth=currentMonth-1
-        if (currentMonth==-1):
-            currentMonth=11
-            currentYear=currentYear-1
+        response[month_code[currentMonth]] = {"total Orders": totalorders, "total_sales": totalcost}
+        currentMonth = currentMonth - 1
+        if (currentMonth == -1):
+            currentMonth = 11
+            currentYear = currentYear - 1
         i += 1
     return Response(response)
+
+
+@api_view(["POST"])
+def razorverification(request, *args, **kwargs):
+    order = Order.objects.get(id=kwargs['pk'])
+    status = request.POST.get('status')
+    if status == '0':
+        order.delete()
+        return JsonResponse({"msg": "Payment Failure Order Could not be placed "})
+    else:
+        items = order.items
+        item_list = []
+        for item in items.all():
+            item_list.append({'id': item.itemId, 'quantity': item.quantity})
+        body = {'item_list': item_list, 'store_id': order.store_id}
+        url = STORES_MICROSERVICE_URL + '/updateQuantity/'
+        success, response = send_request_post(url, body)
+        if not success:
+            raise ValidationError("/updateQuantity : Could not connect to stores microservices")
+        else:
+            order.delivery_status=Order_status[1]
+            order.save()
+            return JsonResponse({"msg": "Order Has been Placed Successfully "})
+
+@api_view(['GET'])
+def storeOrders(request, store_id):
+    orders = Order.objects.filter(store_id=store_id)
+    serializers = OrderSerializer(orders, many=True)
+    return Response(serializers.data, status=status.HTTP_200_OK)
